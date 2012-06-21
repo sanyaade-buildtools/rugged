@@ -8,14 +8,29 @@ def sys(cmd)
   ret
 end
 
-if `which make`.strip.empty?
+# Cross platform implementation of 'which' command. 
+def which(cmd)
+  exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
+  ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
+    exts.each { |ext|
+      exe = "#{path}/#{cmd}#{ext}"
+      return exe if File.executable? exe
+    }
+  end
+
+  return nil
+end
+
+if which('make') == nil
   STDERR.puts "ERROR: GNU make is required to build Rugged"
   exit(1)
 end
 
 if p = ENV['LIBGIT2_PATH']
-  $INCFLAGS[0,0] = " -I#{File.join(p, 'include')} "
-  $LDFLAGS << " -L#{p} "
+  path = ENV['LIBGIT2_PATH'].gsub("\\", '/')
+
+  $INCFLAGS[0,0] = " -I\"#{File.join(p, 'include')}\" "
+  $LDFLAGS << " -L\"#{p}/lib\" "
 
   unless have_library 'git2' and have_header 'git2.h'
     STDERR.puts "ERROR: Invalid `LIBGIT2_PATH` environment"
